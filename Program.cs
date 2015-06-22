@@ -20,13 +20,13 @@ namespace atDNA_Conv
 
         public static void printLogo()
         {
-            Console.WriteLine("+----------------------------------+");
-            Console.WriteLine("| Product: Autosomal DNA Converter |");
-            Console.WriteLine("| Website: www.y-str.org           |");
-            Console.WriteLine("| Developer: Felix <i@fc.id.au>    |");
-            Console.WriteLine("| Version: 1.2                     |");
-            Console.WriteLine("| Build Date: 29-Sep-2013          |");
-            Console.WriteLine("+----------------------------------+");
+            Console.WriteLine("+-------------------------------------------+");
+            Console.WriteLine("| Product: Autosomal DNA Converter          |");
+            Console.WriteLine("| Website: www.y-str.org                    |");
+            Console.WriteLine("| Developer: Felix Immanuel <i@fi.id.au>    |");
+            Console.WriteLine("| Version: 1.3                              |");
+            Console.WriteLine("| Build Date: 13-Jun-2015                   |");
+            Console.WriteLine("+-------------------------------------------+");
         }
 
         public static void printSyntax()
@@ -56,16 +56,19 @@ namespace atDNA_Conv
 
             printLogo();
             Console.WriteLine();
+
             if (args.Length == 0)
             {
                 printSyntax();
                 return;
             }
 
-            string file = @"C:\Users\chandraf\Downloads\NG58V56AGX.csv";
-            string outfile = null;
+
+            string file = @"C:\Users\chandraf\Downloads\Complete_Autosomal.csv";
+            string outfile = @"C:\Users\chandraf\Downloads\Complete_Autosomal.txt";
             int in_type = -1;
-            int out_type = -1;
+            int out_type =  -1;
+
 
             if (args.Length < 2)
             {
@@ -122,24 +125,32 @@ namespace atDNA_Conv
                 }
             }
 
+
             if (out_type == -1)
                 out_type = TYPE_FTDNA;
 
             ArrayList rows = new ArrayList();
 
-            in_type=updateMasterSNPlist(file, rows, in_type);
-            convertFileSNPlist(outfile, rows, out_type);
+            in_type = updateMasterSNPlist(file, outfile, in_type, out_type);           
             if (in_type == TYPE_GENO2)
                 Console.WriteLine("Warning: Geno 2.0 does not have any build positions in their file. Hence, output conversion from Geno 2.0 will not have any position details.");
             Console.WriteLine("Autosomal DNA file converted from " + TYPE[in_type] + " to " + TYPE[out_type] + " successfully.");
+
+        }      
+        
+        public static string Reverse(string s)
+        {
+            char[] charArray = s.ToCharArray();
+            Array.Reverse(charArray);
+            return new string(charArray);
         }
 
-        private static void convertFileSNPlist(string file,  ArrayList rows, int type)
+        private static int updateMasterSNPlist(string file,string outfile, int type, int outtype)
         {
-            StreamWriter fw = new StreamWriter(file);
-            String chr = "";
-
-            switch (type)
+            StreamWriter fw = new StreamWriter(outfile);
+            string allele1 = "";
+            string allele2 = "";
+            switch (outtype)
             {
                 case TYPE_FTDNA:
                     fw.WriteLine("RSID,CHROMOSOME,POSITION,RESULT");
@@ -156,95 +167,18 @@ namespace atDNA_Conv
                 default:
                     break;
             }
-            string allele1 = "";
-            string allele2 = "";
-            string snp="";
-            foreach (string[] data in rows)
-            {
-                chr = data[1];
-                //
-                if (type == TYPE_FTDNA)
-                {
-                    if (chr == "Y" || chr == "M" || chr == "MT" || chr == "24" || chr == "25")
-                        continue;
 
-                    if (chr == "23")
-                        chr = "X";
-                    else if (chr == "24")
-                        chr = "Y";
-                    snp = data[3];
-                    snp=snp.Replace("0", "-");
-                    fw.WriteLine("\"" + data[0] + "\",\"" + chr + "\",\"" + data[2] + "\",\"" + snp + "\"");
-                }
-                else if (type == TYPE_23ANDME)
-                {
-                    if (chr == "23")
-                        chr = "X";
-                    else if (chr == "24")
-                        chr = "Y";
-                    else if (chr == "25" || chr == "M")
-                        chr = "MT";
-                    snp = data[3];
-                    snp = snp.Replace("0", "-");
-                    fw.WriteLine(data[0] + "\t" + chr + "\t" + data[2] + "\t" + snp);
-                }
-                else if (type == TYPE_ANCESTRY)
-                {                    
-                    if (chr == "X")
-                        chr = "23";
-                    else if (chr == "Y")
-                        chr = "24";
-                    else if (chr == "MT" || chr == "M")
-                        chr = "25";
-                    allele1 = data[3][0].ToString();
-                    allele2 = data[3][1].ToString();
-                    if (allele1 == "-")
-                        allele1 = "0";
-                    if (allele2 == "-")
-                        allele2 = "0";
-                    fw.WriteLine(data[0] + "\t" + chr + "\t" + data[2] + "\t" + allele1 + "\t" + allele2);                    
-                }
-                else if (type == TYPE_GENO2)
-                {
-                    if (chr == "23")
-                        chr = "X";
-                    else if (chr == "24")
-                        chr = "Y";
-                    else if (chr == "25" || chr == "M")
-                        chr = "Mt";
-                    allele1 = data[3][0].ToString();
-                    allele2 = data[3][1].ToString();
-                    if (allele1 == "-")
-                        allele1 = "0";
-                    if (allele2 == "-")
-                        allele2 = "0";
-                    fw.WriteLine(data[0] + "," + chr + "," + allele1 + "," + allele2);
-                }
-            }
-            fw.Close();
-        }
-
-        
-        
-        public static string Reverse(string s)
-        {
-            char[] charArray = s.ToCharArray();
-            Array.Reverse(charArray);
-            return new string(charArray);
-        }
-
-        private static int updateMasterSNPlist(string file, ArrayList rows, int type)
-        {
-            string[] lines = null;
-            string tmp = null;
+            //string[] lines = null;
+            IEnumerable<string> lines = null;
+            FileInfo fi = new FileInfo(file);
+            bool gz = false;
             if (file.EndsWith(".gz"))
             {
-                tmp=Encoding.UTF8.GetString(Unzip(File.ReadAllBytes(file)));
-                tmp=tmp.Replace("\r\n","\r");
-                lines = tmp.Split("\r".ToCharArray());
+                file = Decompress(fi);
+                gz = true;
             }
-            else
-                lines = File.ReadAllLines(file);
+            
+            lines = File.ReadLines(file); //File.ReadAllLines(file);
 
             if(type == -1)
                 type = detectDNAFileType(lines);
@@ -336,12 +270,69 @@ namespace atDNA_Conv
                     pos = data[3];
                     genotype = data[5];
                 }
-                rows.Add(new string[]{rsid,chr,pos,genotype});
+                //rows.Add(new string[]{rsid,chr,pos,genotype});
+
+                if (outtype == TYPE_FTDNA)
+                {
+                    if (chr == "Y" || chr == "M" || chr == "MT" || chr == "24" || chr == "25")
+                        continue;
+
+                    if (chr == "23")
+                        chr = "X";
+                    else if (chr == "24")
+                        chr = "Y";
+                    fw.WriteLine("\"" + rsid + "\",\"" + chr + "\",\"" + pos + "\",\"" + genotype.Replace("0", "-") + "\"");
+                }
+                else if (outtype == TYPE_23ANDME)
+                {
+                    if (chr == "23")
+                        chr = "X";
+                    else if (chr == "24")
+                        chr = "Y";
+                    else if (chr == "25" || chr == "M")
+                        chr = "MT";
+                    fw.WriteLine(rsid + "\t" + chr + "\t" + pos + "\t" + genotype.Replace("0", "-"));
+                }
+                else if (outtype == TYPE_ANCESTRY)
+                {
+                    if (chr == "X")
+                        chr = "23";
+                    else if (chr == "Y")
+                        chr = "24";
+                    else if (chr == "MT" || chr == "M")
+                        chr = "25";
+                    allele1 = genotype[0].ToString();
+                    allele2 = genotype[1].ToString();
+                    if (allele1 == "-")
+                        allele1 = "0";
+                    if (allele2 == "-")
+                        allele2 = "0";
+                    fw.WriteLine(rsid + "\t" + chr + "\t" + pos + "\t" + allele1 + "\t" + allele2);
+                }
+                else if (outtype == TYPE_GENO2)
+                {
+                    if (chr == "23")
+                        chr = "X";
+                    else if (chr == "24")
+                        chr = "Y";
+                    else if (chr == "25" || chr == "M")
+                        chr = "Mt";
+                    allele1 = genotype[0].ToString();
+                    allele2 = genotype[1].ToString();
+                    if (allele1 == "-")
+                        allele1 = "0";
+                    if (allele2 == "-")
+                        allele2 = "0";
+                    fw.WriteLine(rsid + "," + chr + "," + allele1 + "," + allele2);
+                }
             }
+            fw.Close();
+            if (gz)
+                File.Delete(file);
             return type;
         }
 
-        private static int detectDNAFileType(string[] lines)
+        private static int detectDNAFileType(IEnumerable<string> lines)
         {
             int count = 0;
             foreach (string line in lines)
@@ -375,46 +366,24 @@ namespace atDNA_Conv
             return -1;
         }
 
-        public static byte[] Zip(byte[] bytes)
+        public static string Decompress(FileInfo fileToDecompress)
         {
-            using (var msi = new MemoryStream(bytes))
-            using (var mso = new MemoryStream())
+            string newFileName = null;
+            using (FileStream originalFileStream = fileToDecompress.OpenRead())
             {
-                using (var gs = new GZipStream(mso, CompressionMode.Compress))
+                string currentFileName = fileToDecompress.FullName;
+                newFileName = currentFileName.Remove(currentFileName.Length - fileToDecompress.Extension.Length);
+
+                using (FileStream decompressedFileStream = File.Create(newFileName))
                 {
-                    //msi.CopyTo(gs);
-                    CopyTo(msi, gs);
+                    using (GZipStream decompressionStream = new GZipStream(originalFileStream, CompressionMode.Decompress))
+                    {
+                        decompressionStream.CopyTo(decompressedFileStream);
+                        Console.WriteLine("Decompressed: {0}", fileToDecompress.Name);
+                    }
                 }
-
-                return mso.ToArray();
             }
-        }
-
-        public static byte[] Unzip(byte[] bytes)
-        {
-            using (var msi = new MemoryStream(bytes))
-            using (var mso = new MemoryStream())
-            {
-                using (var gs = new GZipStream(msi, CompressionMode.Decompress))
-                {
-                    //gs.CopyTo(mso);
-                    CopyTo(gs, mso);
-                }
-
-                return mso.ToArray();
-            }
-        }
-
-        public static void CopyTo(Stream src, Stream dest)
-        {
-            byte[] bytes = new byte[4096];
-
-            int cnt;
-
-            while ((cnt = src.Read(bytes, 0, bytes.Length)) != 0)
-            {
-                dest.Write(bytes, 0, cnt);
-            }
+            return newFileName;
         }
 
         private static string getPosition(string rsid)
